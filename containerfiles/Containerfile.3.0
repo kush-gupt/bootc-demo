@@ -27,30 +27,11 @@ RUN dnf install -y \
     && dnf clean all
 
 # Configure PAM for password complexity and faillock
-RUN cat > /etc/security/pwquality.conf <<EOF
-minlen = 15
-dcredit = -1
-ucredit = -1
-ocredit = -1
-lcredit = -1
-minclass = 4
-maxrepeat = 3
-maxclassrepeat = 4
-difok = 8
-dictcheck = 1
-retry = 3
-EOF
+RUN printf 'minlen = 15\ndcredit = -1\nucredit = -1\nocredit = -1\nlcredit = -1\nminclass = 4\nmaxrepeat = 3\nmaxclassrepeat = 4\ndifok = 8\ndictcheck = 1\nretry = 3\n' > /etc/security/pwquality.conf
 
 # Configure faillock
 RUN mkdir -p /etc/security/faillock && \
-    cat > /etc/security/faillock.conf <<EOF
-dir = /var/run/faillock
-audit
-silent
-deny = 3
-fail_interval = 900
-unlock_time = 0
-EOF
+    printf 'dir = /var/run/faillock\naudit\nsilent\ndeny = 3\nfail_interval = 900\nunlock_time = 0\n' > /etc/security/faillock.conf
 
 # Configure login.defs for password aging and umask
 RUN sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   60/' /etc/login.defs && \
@@ -81,95 +62,90 @@ RUN mkdir -p /etc/modprobe.d && \
 
 # Configure sysctl for network hardening
 RUN mkdir -p /etc/sysctl.d && \
-    cat > /etc/sysctl.d/99-stig.conf <<EOF
-# Network hardening
-net.ipv4.conf.all.accept_redirects = 0
-net.ipv4.conf.default.accept_redirects = 0
-net.ipv4.conf.all.accept_source_route = 0
-net.ipv4.conf.default.accept_source_route = 0
-net.ipv4.conf.all.forwarding = 0
-net.ipv4.conf.all.rp_filter = 1
-net.ipv4.conf.default.rp_filter = 1
-net.ipv4.conf.all.send_redirects = 0
-net.ipv4.conf.default.send_redirects = 0
-net.ipv4.icmp_echo_ignore_broadcasts = 1
-net.ipv4.icmp_ignore_bogus_error_responses = 1
-net.ipv4.tcp_syncookies = 1
-net.ipv4.tcp_invalid_ratelimit = 500
-net.ipv4.ip_forward = 0
-net.ipv6.conf.all.accept_ra = 0
-net.ipv6.conf.default.accept_ra = 0
-net.ipv6.conf.all.accept_redirects = 0
-net.ipv6.conf.default.accept_redirects = 0
-net.ipv6.conf.all.accept_source_route = 0
-net.ipv6.conf.default.accept_source_route = 0
-net.ipv6.conf.all.forwarding = 0
-
-# Kernel hardening
-kernel.dmesg_restrict = 1
-kernel.kptr_restrict = 2
-kernel.randomize_va_space = 2
-kernel.perf_event_paranoid = 2
-kernel.unprivileged_bpf_disabled = 1
-kernel.yama.ptrace_scope = 1
-kernel.core_pattern = |/bin/false
-net.core.bpf_jit_harden = 2
-kernel.kexec_load_disabled = 1
-
-# Filesystem hardening
-fs.protected_hardlinks = 1
-fs.protected_symlinks = 1
-EOF
+    { echo '# Network hardening'; \
+      echo 'net.ipv4.conf.all.accept_redirects = 0'; \
+      echo 'net.ipv4.conf.default.accept_redirects = 0'; \
+      echo 'net.ipv4.conf.all.accept_source_route = 0'; \
+      echo 'net.ipv4.conf.default.accept_source_route = 0'; \
+      echo 'net.ipv4.conf.all.forwarding = 0'; \
+      echo 'net.ipv4.conf.all.rp_filter = 1'; \
+      echo 'net.ipv4.conf.default.rp_filter = 1'; \
+      echo 'net.ipv4.conf.all.send_redirects = 0'; \
+      echo 'net.ipv4.conf.default.send_redirects = 0'; \
+      echo 'net.ipv4.icmp_echo_ignore_broadcasts = 1'; \
+      echo 'net.ipv4.icmp_ignore_bogus_error_responses = 1'; \
+      echo 'net.ipv4.tcp_syncookies = 1'; \
+      echo 'net.ipv4.tcp_invalid_ratelimit = 500'; \
+      echo 'net.ipv4.ip_forward = 0'; \
+      echo 'net.ipv6.conf.all.accept_ra = 0'; \
+      echo 'net.ipv6.conf.default.accept_ra = 0'; \
+      echo 'net.ipv6.conf.all.accept_redirects = 0'; \
+      echo 'net.ipv6.conf.default.accept_redirects = 0'; \
+      echo 'net.ipv6.conf.all.accept_source_route = 0'; \
+      echo 'net.ipv6.conf.default.accept_source_route = 0'; \
+      echo 'net.ipv6.conf.all.forwarding = 0'; \
+      echo '# Kernel hardening'; \
+      echo 'kernel.dmesg_restrict = 1'; \
+      echo 'kernel.kptr_restrict = 2'; \
+      echo 'kernel.randomize_va_space = 2'; \
+      echo 'kernel.perf_event_paranoid = 2'; \
+      echo 'kernel.unprivileged_bpf_disabled = 1'; \
+      echo 'kernel.yama.ptrace_scope = 1'; \
+      echo 'kernel.core_pattern = |/bin/false'; \
+      echo 'net.core.bpf_jit_harden = 2'; \
+      echo 'kernel.kexec_load_disabled = 1'; \
+      echo '# Filesystem hardening'; \
+      echo 'fs.protected_hardlinks = 1'; \
+      echo 'fs.protected_symlinks = 1'; \
+    } > /etc/sysctl.d/99-stig.conf
 
 # Configure SSH server with STIG settings
 RUN mkdir -p /etc/ssh/sshd_config.d && \
-    cat > /etc/ssh/sshd_config.d/99-stig.conf <<EOF
-# STIG SSH Configuration
-PermitRootLogin no
-MaxAuthTries 3
-ClientAliveInterval 600
-ClientAliveCountMax 0
-IgnoreRhosts yes
-HostbasedAuthentication no
-PermitEmptyPasswords no
-PermitUserEnvironment no
-GSSAPIAuthentication no
-KerberosAuthentication no
-StrictModes yes
-Compression no
-X11Forwarding no
-PrintLastLog yes
-Banner /etc/issue
-IgnoreUserKnownHosts yes
-PubkeyAuthentication yes
-LogLevel VERBOSE
-MaxSessions 10
-RekeyLimit 1G 1h
-ClientAliveCountMax 1
-IgnoreRhosts yes
-X11UseLocalhost yes
-EOF
+    { echo '# STIG SSH Configuration'; \
+      echo 'PermitRootLogin no'; \
+      echo 'MaxAuthTries 3'; \
+      echo 'ClientAliveInterval 600'; \
+      echo 'ClientAliveCountMax 0'; \
+      echo 'IgnoreRhosts yes'; \
+      echo 'HostbasedAuthentication no'; \
+      echo 'PermitEmptyPasswords no'; \
+      echo 'PermitUserEnvironment no'; \
+      echo 'GSSAPIAuthentication no'; \
+      echo 'KerberosAuthentication no'; \
+      echo 'StrictModes yes'; \
+      echo 'Compression no'; \
+      echo 'X11Forwarding no'; \
+      echo 'PrintLastLog yes'; \
+      echo 'Banner /etc/issue'; \
+      echo 'IgnoreUserKnownHosts yes'; \
+      echo 'PubkeyAuthentication yes'; \
+      echo 'LogLevel VERBOSE'; \
+      echo 'MaxSessions 10'; \
+      echo 'RekeyLimit 1G 1h'; \
+      echo 'ClientAliveCountMax 1'; \
+      echo 'X11UseLocalhost yes'; \
+    } > /etc/ssh/sshd_config.d/99-stig.conf
 
 # Create login banner
-RUN cat > /etc/issue <<EOF
-*****************************************************************************
-*                                                                           *
-* This system is for the use of authorized users only. Individuals using   *
-* this computer system without authority, or in excess of their authority, *
-* are subject to having all of their activities on this system monitored   *
-* and recorded by system personnel.                                        *
-*                                                                           *
-* In the course of monitoring individuals improperly using this system, or *
-* in the course of system maintenance, the activities of authorized users  *
-* may also be monitored.                                                   *
-*                                                                           *
-* Anyone using this system expressly consents to such monitoring and is    *
-* advised that if such monitoring reveals possible evidence of criminal    *
-* activity, system personnel may provide the evidence to law enforcement   *
-* officials.                                                                *
-*                                                                           *
-*****************************************************************************
-EOF
+RUN printf '%s\n' \
+    '*****************************************************************************' \
+    '*                                                                           *' \
+    '* This system is for the use of authorized users only. Individuals using   *' \
+    '* this computer system without authority, or in excess of their authority, *' \
+    '* are subject to having all of their activities on this system monitored   *' \
+    '* and recorded by system personnel.                                        *' \
+    '*                                                                           *' \
+    '* In the course of monitoring individuals improperly using this system, or *' \
+    '* in the course of system maintenance, the activities of authorized users  *' \
+    '* may also be monitored.                                                   *' \
+    '*                                                                           *' \
+    '* Anyone using this system expressly consents to such monitoring and is    *' \
+    '* advised that if such monitoring reveals possible evidence of criminal    *' \
+    '* activity, system personnel may provide the evidence to law enforcement   *' \
+    '* officials.                                                                *' \
+    '*                                                                           *' \
+    '*****************************************************************************' \
+    > /etc/issue
 
 # Configure chrony for NTP
 RUN sed -i '/^pool /d' /etc/chrony.conf && \
@@ -198,11 +174,7 @@ RUN sed -i 's/^Defaults timestamp_timeout.*/Defaults timestamp_timeout=0/' /etc/
 # Disable core dumps
 RUN echo "* hard core 0" > /etc/security/limits.d/core.conf && \
     mkdir -p /etc/systemd/coredump.conf.d && \
-    cat > /etc/systemd/coredump.conf.d/disable.conf <<EOF
-[Coredump]
-Storage=none
-ProcessSizeMax=0
-EOF
+    printf '[Coredump]\nStorage=none\nProcessSizeMax=0\n' > /etc/systemd/coredump.conf.d/disable.conf
 
 # Configure ctrl-alt-del
 RUN systemctl mask ctrl-alt-del.target || true
