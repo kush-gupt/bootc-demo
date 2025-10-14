@@ -1,0 +1,41 @@
+# Tag 4.0 - CentOS Stream 10 Bootc Image with FIPS, DISA STIG, and Modern Web App
+# Builds on 3.0 and adds a modern Python Flask web application
+
+FROM localhost/bootc-demo:3.0
+
+# Install Python 3 and pip
+RUN dnf install -y \
+    python3 \
+    python3-pip \
+    && dnf clean all
+
+# Create webapp directory
+RUN mkdir -p /opt/webapp/static/css /opt/webapp/static/js /opt/webapp/templates
+
+# Copy web application files
+COPY webapp/app.py /opt/webapp/
+COPY webapp/requirements.txt /opt/webapp/
+COPY webapp/static/css/style.css /opt/webapp/static/css/
+COPY webapp/static/js/app.js /opt/webapp/static/js/
+COPY webapp/templates/index.html /opt/webapp/templates/
+
+# Install Python dependencies
+RUN pip3 install --no-cache-dir -r /opt/webapp/requirements.txt
+
+# Copy and enable systemd service
+COPY webapp/bootc-demo-webapp.service /etc/systemd/system/
+RUN systemctl enable bootc-demo-webapp.service
+
+# Expose port 8080 for the web application
+EXPOSE 8080
+
+# Update hostname
+RUN echo "bootc-demo-v4" > /etc/hostname
+
+# Update MOTD
+RUN echo "================================================" > /etc/motd && \
+    echo "CentOS Stream 10 Bootc Demo v4.0" >> /etc/motd && \
+    echo "Base + FIPS + DISA STIG + Modern Web Application" >> /etc/motd && \
+    echo "Web UI available at http://<ip>:8080" >> /etc/motd && \
+    echo "================================================" >> /etc/motd
+

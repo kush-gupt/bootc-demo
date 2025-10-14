@@ -1,0 +1,23 @@
+# Tag 2.0 - CentOS Stream 10 Bootc Image with FIPS
+# Builds on 1.0 and adds FIPS mode
+
+FROM localhost/bootc-demo:1.0
+
+# Copy FIPS kernel arguments configuration
+COPY 01-fips.toml /usr/lib/bootc/kargs.d/
+
+# Install crypto-policies-scripts and enable FIPS cryptographic policy
+# Reference: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/security_hardening/assembly_installing-the-system-in-fips-mode_security-hardening
+RUN dnf install -y crypto-policies-scripts && \
+    update-crypto-policies --no-reload --set FIPS && \
+    dnf clean all
+
+# Update hostname
+RUN echo "bootc-demo-v2" > /etc/hostname
+
+# Update MOTD
+RUN echo "================================" > /etc/motd && \
+    echo "CentOS Stream 10 Bootc Demo v2.0" >> /etc/motd && \
+    echo "Base image + FIPS mode enabled" >> /etc/motd && \
+    echo "================================" >> /etc/motd
+

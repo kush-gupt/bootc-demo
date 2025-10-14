@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CentOS Bootc Demo v4.0</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-section">
+                <div class="logo-icon">🚀</div>
+                <div>
+                    <h1 class="title">CentOS Bootc Demo</h1>
+                    <p class="subtitle">Image Mode with FIPS & DISA STIG</p>
+                </div>
+            </div>
+            <div class="status-indicator" id="health-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Loading...</span>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <main class="grid">
+            <!-- System Information Card -->
+            <div class="card glass-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="icon">💻</span>
+                        System Information
+                    </h2>
+                </div>
+                <div class="card-content">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Hostname</span>
+                            <span class="info-value" id="hostname">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Architecture</span>
+                            <span class="info-value" id="architecture">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Kernel</span>
+                            <span class="info-value" id="kernel">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">CPU Cores</span>
+                            <span class="info-value" id="cpu-count">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Uptime</span>
+                            <span class="info-value" id="uptime">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Load Average</span>
+                            <span class="info-value" id="load-avg">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Status Card -->
+            <div class="card glass-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="icon">🔒</span>
+                        Security Status
+                    </h2>
+                </div>
+                <div class="card-content">
+                    <div class="security-badges">
+                        <div class="badge" id="fips-badge">
+                            <div class="badge-icon">🔐</div>
+                            <div class="badge-content">
+                                <div class="badge-title">FIPS Mode</div>
+                                <div class="badge-status" id="fips-status">Checking...</div>
+                            </div>
+                        </div>
+                        <div class="badge" id="stig-badge">
+                            <div class="badge-icon">🛡️</div>
+                            <div class="badge-content">
+                                <div class="badge-title">DISA STIG</div>
+                                <div class="badge-status" id="stig-status">Checking...</div>
+                            </div>
+                        </div>
+                        <div class="badge" id="crypto-badge">
+                            <div class="badge-icon">🔑</div>
+                            <div class="badge-content">
+                                <div class="badge-title">Crypto Policy</div>
+                                <div class="badge-status" id="crypto-policy">Checking...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Card -->
+            <div class="card glass-card feature-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="icon">✨</span>
+                        Version Features
+                    </h2>
+                </div>
+                <div class="card-content">
+                    <div class="features-timeline">
+                        <div class="feature-item">
+                            <div class="feature-version">v1.0</div>
+                            <div class="feature-desc">Vanilla CentOS Stream 10 Bootc Image</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-version">v2.0</div>
+                            <div class="feature-desc">+ FIPS Mode Enabled</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-version">v3.0</div>
+                            <div class="feature-desc">+ DISA STIG Hardening</div>
+                        </div>
+                        <div class="feature-item active">
+                            <div class="feature-version">v4.0</div>
+                            <div class="feature-desc">+ Modern Web Application</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Metrics Card -->
+            <div class="card glass-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="icon">📊</span>
+                        Live Metrics
+                    </h2>
+                </div>
+                <div class="card-content">
+                    <div class="metrics">
+                        <div class="metric-item">
+                            <div class="metric-label">Last Updated</div>
+                            <div class="metric-value" id="last-update">-</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label">API Response Time</div>
+                            <div class="metric-value" id="response-time">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>CentOS Stream 10 Bootc Demo • Version 4.0 • FIPS + STIG + Modern Web App</p>
+            <p>Auto-refreshes every 10 seconds</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+

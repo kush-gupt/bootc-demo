@@ -1,0 +1,4 @@
+# Enable FIPS mode at boot
+# This file configures kernel arguments for bootc
+kargs = ["fips=1"]
+

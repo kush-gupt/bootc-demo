@@ -1,0 +1,16 @@
+[Unit]
+Description=CentOS Bootc Demo Web Application
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/webapp
+ExecStart=/usr/bin/python3 /opt/webapp/app.py
+Restart=always
+RestartSec=10
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target
+

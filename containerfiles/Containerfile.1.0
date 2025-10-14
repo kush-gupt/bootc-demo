@@ -1,0 +1,23 @@
+# Tag 1.0 - Vanilla CentOS Stream 10 Bootc Image
+# Base bootable container image
+
+FROM quay.io/centos-bootc/centos-bootc:stream10
+
+# Update system packages
+RUN dnf -y update && \
+    dnf -y install \
+    vim-enhanced \
+    bash-completion \
+    tmux \
+    git \
+    && dnf clean all
+
+# Set hostname
+RUN echo "bootc-demo-v1" > /etc/hostname
+
+# Add a helpful MOTD
+RUN echo "================================" > /etc/motd && \
+    echo "CentOS Stream 10 Bootc Demo v1.0" >> /etc/motd && \
+    echo "Vanilla base image" >> /etc/motd && \
+    echo "================================" >> /etc/motd
+

@@ -1,0 +1,35 @@
+# Tag 3.0 - CentOS Stream 10 Bootc Image with FIPS and DISA STIG
+# Builds on 2.0 and adds DISA STIG hardening
+
+FROM localhost/bootc-demo:2.0
+
+# Install SCAP Security Guide for STIG compliance
+RUN dnf install -y \
+    scap-security-guide \
+    openscap \
+    openscap-scanner \
+    && dnf clean all
+
+# Apply DISA STIG hardening profile
+# Note: Some remediations may not apply in a container context
+# but will be enforced when the bootc image is deployed
+RUN oscap xccdf eval \
+    --profile xccdf_org.ssgproject.content_profile_stig \
+    --remediate \
+    /usr/share/xml/scap/ssg/content/ssg-cs9-ds.xml || true
+
+# Configure additional STIG-related security settings
+RUN sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config && \
+    sed -i 's/^#MaxAuthTries.*/MaxAuthTries 3/' /etc/ssh/sshd_config && \
+    sed -i 's/^#ClientAliveInterval.*/ClientAliveInterval 600/' /etc/ssh/sshd_config && \
+    sed -i 's/^#ClientAliveCountMax.*/ClientAliveCountMax 0/' /etc/ssh/sshd_config
+
+# Update hostname
+RUN echo "bootc-demo-v3" > /etc/hostname
+
+# Update MOTD
+RUN echo "========================================" > /etc/motd && \
+    echo "CentOS Stream 10 Bootc Demo v3.0" >> /etc/motd && \
+    echo "Base image + FIPS + DISA STIG hardening" >> /etc/motd && \
+    echo "========================================" >> /etc/motd
+
