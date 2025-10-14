@@ -13,17 +13,17 @@ RUN dnf install -y \
 RUN mkdir -p /opt/webapp/static/css /opt/webapp/static/js /opt/webapp/templates
 
 # Copy web application files
-COPY webapp/app.py /opt/webapp/
-COPY webapp/requirements.txt /opt/webapp/
-COPY webapp/static/css/style.css /opt/webapp/static/css/
-COPY webapp/static/js/app.js /opt/webapp/static/js/
-COPY webapp/templates/index.html /opt/webapp/templates/
+COPY ../webapp/app.py /opt/webapp/
+COPY ../webapp/requirements.txt /opt/webapp/
+COPY ../webapp/static/css/style.css /opt/webapp/static/css/
+COPY ../webapp/static/js/app.js /opt/webapp/static/js/
+COPY ../webapp/templates/index.html /opt/webapp/templates/
 
 # Install Python dependencies
 RUN pip3 install --no-cache-dir -r /opt/webapp/requirements.txt
 
 # Copy and enable systemd service
-COPY webapp/bootc-demo-webapp.service /etc/systemd/system/
+COPY ../webapp/bootc-demo-webapp.service /etc/systemd/system/
 RUN systemctl enable bootc-demo-webapp.service
 
 # Expose port 8080 for the web application
