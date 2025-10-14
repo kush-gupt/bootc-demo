@@ -17,22 +17,23 @@ jobs:
   # Build Image 1.0 (Vanilla)
   # ========================================================================
   build-1-0:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
     strategy:
       matrix:
-        platform: [linux/amd64, linux/arm64]
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up QEMU for multi-arch builds
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64,amd64
 
       - name: Set up Podman
         run: |
@@ -47,19 +48,18 @@ jobs:
         id: meta
         run: |
           echo "date=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
-          echo "arch=$(echo ${{ matrix.platform }} | sed 's/linux\///')" >> $GITHUB_OUTPUT
 
       - name: Build Image 1.0
         run: |
           cd containerfiles
           podman build --squash --platform ${{ matrix.platform }} \
             -f Containerfile.1.0 \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:1.0-${{ steps.meta.outputs.arch }} \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:1.0-${{ matrix.arch }} \
             .
 
       - name: Push Image 1.0
         run: |
-          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:1.0-${{ steps.meta.outputs.arch }}
+          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:1.0-${{ matrix.arch }}
 
   create-manifest-1-0:
     needs: build-1-0
@@ -105,22 +105,23 @@ jobs:
   # ========================================================================
   build-2-0:
     needs: create-manifest-1-0
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
     strategy:
       matrix:
-        platform: [linux/amd64, linux/arm64]
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up QEMU for multi-arch builds
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64,amd64
 
       - name: Set up Podman
         run: |
@@ -135,21 +136,20 @@ jobs:
         id: meta
         run: |
           echo "date=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
-          echo "arch=$(echo ${{ matrix.platform }} | sed 's/linux\///')" >> $GITHUB_OUTPUT
 
       - name: Build Image 2.0
         run: |
           cd containerfiles
-          podman pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:1.0-${{ steps.meta.outputs.arch }}
-          podman tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:1.0-${{ steps.meta.outputs.arch }} localhost/bootc-demo:1.0
+          podman pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:1.0-${{ matrix.arch }}
+          podman tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:1.0-${{ matrix.arch }} localhost/bootc-demo:1.0
           podman build --squash --platform ${{ matrix.platform }} \
             -f Containerfile.2.0 \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.0-${{ steps.meta.outputs.arch }} \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.0-${{ matrix.arch }} \
             .
 
       - name: Push Image 2.0
         run: |
-          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.0-${{ steps.meta.outputs.arch }}
+          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.0-${{ matrix.arch }}
 
   create-manifest-2-0:
     needs: build-2-0
@@ -195,22 +195,23 @@ jobs:
   # ========================================================================
   build-3-0:
     needs: create-manifest-2-0
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
     strategy:
       matrix:
-        platform: [linux/amd64, linux/arm64]
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up QEMU for multi-arch builds
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64,amd64
 
       - name: Set up Podman
         run: |
@@ -225,21 +226,20 @@ jobs:
         id: meta
         run: |
           echo "date=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
-          echo "arch=$(echo ${{ matrix.platform }} | sed 's/linux\///')" >> $GITHUB_OUTPUT
 
       - name: Build Image 3.0
         run: |
           cd containerfiles
-          podman pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.0-${{ steps.meta.outputs.arch }}
-          podman tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.0-${{ steps.meta.outputs.arch }} localhost/bootc-demo:2.0
+          podman pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.0-${{ matrix.arch }}
+          podman tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:2.0-${{ matrix.arch }} localhost/bootc-demo:2.0
           podman build --squash --platform ${{ matrix.platform }} \
             -f Containerfile.3.0 \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:3.0-${{ steps.meta.outputs.arch }} \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:3.0-${{ matrix.arch }} \
             .
 
       - name: Push Image 3.0
         run: |
-          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:3.0-${{ steps.meta.outputs.arch }}
+          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:3.0-${{ matrix.arch }}
 
   create-manifest-3-0:
     needs: build-3-0
@@ -285,22 +285,23 @@ jobs:
   # ========================================================================
   build-4-0:
     needs: create-manifest-3-0
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
     strategy:
       matrix:
-        platform: [linux/amd64, linux/arm64]
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up QEMU for multi-arch builds
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64,amd64
 
       - name: Set up Podman
         run: |
@@ -315,20 +316,19 @@ jobs:
         id: meta
         run: |
           echo "date=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
-          echo "arch=$(echo ${{ matrix.platform }} | sed 's/linux\///')" >> $GITHUB_OUTPUT
 
       - name: Build Image 4.0
         run: |
-          podman pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:3.0-${{ steps.meta.outputs.arch }}
-          podman tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:3.0-${{ steps.meta.outputs.arch }} localhost/bootc-demo:3.0
+          podman pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:3.0-${{ matrix.arch }}
+          podman tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:3.0-${{ matrix.arch }} localhost/bootc-demo:3.0
           podman build --squash --platform ${{ matrix.platform }} \
             -f containerfiles/Containerfile.4.0 \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:4.0-${{ steps.meta.outputs.arch }} \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:4.0-${{ matrix.arch }} \
             .
 
       - name: Push Image 4.0
         run: |
-          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:4.0-${{ steps.meta.outputs.arch }}
+          podman push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:4.0-${{ matrix.arch }}
 
   create-manifest-4-0:
     needs: build-4-0
@@ -398,7 +398,8 @@ jobs:
           echo "- \`4.0\` - + Modern Web App (amd64, arm64)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Features:" >> $GITHUB_STEP_SUMMARY
-          echo "- 🏗️ Multi-architecture support (amd64 + arm64) **built in parallel**" >> $GITHUB_STEP_SUMMARY
+          echo "- 🏗️ Multi-architecture support (amd64 + arm64) **built on native hardware**" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚡ **Parallel builds** - AMD64 on x86 runners, ARM64 on ARM runners" >> $GITHUB_STEP_SUMMARY
           echo "- 📦 Single-layer squashed images" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Pull Commands:" >> $GITHUB_STEP_SUMMARY
