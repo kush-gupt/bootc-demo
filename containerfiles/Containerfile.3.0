@@ -13,10 +13,11 @@ RUN dnf install -y \
 # Apply DISA STIG hardening profile
 # Note: Some remediations may not apply in a container context
 # but will be enforced when the bootc image is deployed
+# CentOS Stream 10 uses cs10 instead of cs9 in the filename
 RUN oscap xccdf eval \
     --profile xccdf_org.ssgproject.content_profile_stig \
     --remediate \
-    /usr/share/xml/scap/ssg/content/ssg-cs9-ds.xml || true
+    /usr/share/xml/scap/ssg/content/ssg-cs10-ds.xml || true
 
 # Configure additional STIG-related security settings
 RUN sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config && \

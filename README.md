@@ -96,7 +96,7 @@ podman run -it --rm localhost/bootc-demo:3.0 bash
 
 # Inside the container:
 oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig \
-    /usr/share/xml/scap/ssg/content/ssg-cs9-ds.xml
+    /usr/share/xml/scap/ssg/content/ssg-cs10-ds.xml
 ```
 
 ## 🚢 Deploying to Physical/Virtual Systems
