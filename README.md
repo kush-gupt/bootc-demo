@@ -6,10 +6,17 @@ A progressive bootable container image demonstration using CentOS Stream 10, sho
 
 This project demonstrates the power and flexibility of bootable container images (bootc) by creating four progressively enhanced versions:
 
-- **v1.0** - Vanilla CentOS Stream 10 base image
-- **v2.0** - Base + FIPS mode enabled
-- **v3.0** - Base + FIPS + DISA STIG hardening
-- **v4.0** - Base + FIPS + DISA STIG + Modern web application
+## 📚 Version Comparison
+
+| Feature | v1.0 | v2.0 | v3.0 | v4.0 |
+|---------|------|------|------|------|
+| Base OS | ✅ | ✅ | ✅ | ✅ |
+| FIPS Mode | ❌ | ✅ | ✅ | ✅ |
+| DISA STIG | ❌ | ❌ | ✅ | ✅ |
+| Web App | ❌ | ❌ | ❌ | ✅ |
+| Multi-arch (AMD64/ARM64) | ✅ | ✅ | ✅ | ✅ |
+| Single Layer (Squashed) | ✅ | ✅ | ✅ | ✅ |
+| Use Case | Development | Compliance Required | High Security | Full Stack Demo |
 
 Each version builds upon the previous one, demonstrating how bootable container images can be layered and customized for different security and operational requirements.
 
@@ -22,7 +29,9 @@ Each version builds upon the previous one, demonstrating how bootable container 
 
 ## Building Images
 
-Use the provided script to build all four versions sequentially:
+### Quick Start
+
+Use the provided script to build all four versions for your native architecture:
 
 ```bash
 ./scripts/local-build.sh
@@ -34,23 +43,34 @@ This will build all images with tags:
 - `localhost/bootc-demo:3.0`
 - `localhost/bootc-demo:4.0`
 
+### Multi-Architecture Build
+
+To build for both AMD64 and ARM64 architectures:
+
+```bash
+BUILD_MULTIARCH=true ./scripts/local-build.sh
+```
+
+This creates multi-arch manifests that automatically select the correct image for your platform.
+
 ### Manual Build
 
-Build specific versions manually:
+Build specific versions manually (with squashing for single-layer images):
 
 ```bash
 # Version 1.0 - Vanilla
 cd containerfiles
-podman build -f Containerfile.1.0 -t somewhere/bootc-demo:1.0 .
+podman build --squash -f Containerfile.1.0 -t somewhere/bootc-demo:1.0 .
 
 # Version 2.0 - FIPS
-podman build -f Containerfile.2.0 -t somewhere/bootc-demo:2.0 .
+podman build --squash -f Containerfile.2.0 -t somewhere/bootc-demo:2.0 .
 
 # Version 3.0 - FIPS + STIG
-podman build -f Containerfile.3.0 -t somewhere/bootc-demo:3.0 .
+podman build --squash -f Containerfile.3.0 -t somewhere/bootc-demo:3.0 .
 
 # Version 4.0 - FIPS + STIG + WebApp
-podman build -f Containerfile.4.0 -t somewhere/bootc-demo:4.0 .
+cd ..
+podman build --squash -f containerfiles/Containerfile.4.0 -t somewhere/bootc-demo:4.0 .
 ```
 
 ## Testing the Images
@@ -211,15 +231,7 @@ After deploying version 4.0, access the web interface at:
 http://<system-ip>:8080
 ```
 
-## 📚 Version Comparison
 
-| Feature | v1.0 | v2.0 | v3.0 | v4.0 |
-|---------|------|------|------|------|
-| Base OS | ✅ | ✅ | ✅ | ✅ |
-| FIPS Mode | ❌ | ✅ | ✅ | ✅ |
-| DISA STIG | ❌ | ❌ | ✅ | ✅ |
-| Web App | ❌ | ❌ | ❌ | ✅ |
-| Use Case | Development | Compliance Required | High Security | Full Stack Demo |
 
 ## 📖 References
 
