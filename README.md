@@ -79,23 +79,40 @@ podman stop test-webapp
 
 ### Test FIPS Mode
 
+**Important**: When running as a container, FIPS mode requires the host system to have FIPS enabled, since containers share the host's kernel. The FIPS kernel arguments configured in the bootc image will take effect when the image is deployed to bare metal or a VM.
+
 ```bash
 # Run version 2.0 or higher
 podman run -it --rm localhost/bootc-demo:2.0 bash
 
 # Inside the container:
-cat /proc/sys/crypto/fips_enabled  # Should show: 1
+cat /proc/sys/crypto/fips_enabled  # Shows 1 only if host has FIPS enabled
 update-crypto-policies --show      # Should show: FIPS
+
+# To test FIPS properly, deploy the bootc image to a real system
+# where it will boot with its own kernel and FIPS will be fully enabled
 ```
 
 ### Test STIG Compliance
+
+**Important**: Many STIG checks will show as "notapplicable" or "error" when running as a container because:
+- Containers don't have their own kernel (kernel parameters won't apply)
+- Some services can't start in container context
+- Audit rules require kernel-level features
+
+When deployed as a bootc image to a real system, significantly more STIG controls will pass.
 
 ```bash
 # Run version 3.0 or higher
 podman run -it --rm localhost/bootc-demo:3.0 bash
 
-# Inside the container:
+# Inside the container - run STIG evaluation
 oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig \
+    /usr/share/xml/scap/ssg/content/ssg-cs10-ds.xml
+
+# Generate an HTML report
+oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig \
+    --report /tmp/stig-report.html \
     /usr/share/xml/scap/ssg/content/ssg-cs10-ds.xml
 ```
 
