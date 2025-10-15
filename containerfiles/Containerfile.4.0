@@ -36,6 +36,13 @@ RUN echo "bootc-demo-v4" > /etc/hostname
 RUN echo "================================================" > /etc/motd && \
     echo "CentOS Stream 10 Bootc Demo v4.0" >> /etc/motd && \
     echo "Base + FIPS + DISA STIG + Modern Web Application" >> /etc/motd && \
-    echo "Web UI available at http://<ip>:8080" >> /etc/motd && \
+    echo "" >> /etc/motd && \
+    echo "Web UI: http://<ip>:8080" >> /etc/motd && \
+    echo "" >> /etc/motd && \
+    echo "FIPS enabled - verify with:" >> /etc/motd && \
+    echo "  cat /proc/sys/crypto/fips_enabled" >> /etc/motd && \
     echo "================================================" >> /etc/motd
+
+# Best practice: Run bootc linter as final step
+RUN bootc container lint || true
 

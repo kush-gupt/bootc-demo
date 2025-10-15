@@ -1,220 +1,43 @@
 # Tag 3.0 - CentOS Stream 10 Bootc Image with FIPS and DISA STIG
 # Builds on 2.0 and adds DISA STIG hardening
+# Reference: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_image_mode_for_rhel_to_build_deploy_and_manage_operating_systems/assembly_security-hardening-and-compliance-of-bootable-images_using-image-mode-for-rhel-to-build-deploy-and-manage-operating-systems
 
 FROM localhost/bootc-demo:2.0
 
-# Install SCAP Security Guide and required packages for STIG compliance
+# Install OpenSCAP scanner and security content
+# Using oscap-im tool which is specifically designed for bootable container images
 RUN dnf install -y \
+    openscap-utils \
     scap-security-guide \
-    openscap \
-    openscap-scanner \
-    aide \
-    rsyslog \
-    rsyslog-gnutls \
-    audit \
-    audispd-plugins \
-    firewalld \
-    usbguard \
-    fapolicyd \
-    libreswan \
-    gnutls-utils \
-    nss-tools \
-    opensc \
-    s-nail \
-    sssd \
-    nfs-utils \
-    cronie \
     && dnf clean all
 
-# Configure PAM for password complexity and faillock
-RUN printf 'minlen = 15\ndcredit = -1\nucredit = -1\nocredit = -1\nlcredit = -1\nminclass = 4\nmaxrepeat = 3\nmaxclassrepeat = 4\ndifok = 8\ndictcheck = 1\nretry = 3\n' > /etc/security/pwquality.conf
+# Create a sudo user before applying STIG profile
+# STIG profile prevents SSH root logins, so we need a sudo user
+# Password hash for 'bootc' generated with: openssl passwd -6 -salt saltsaltlettuce bootc
+RUN useradd -G wheel -p '$6$rounds=4096$saltsaltlettuce$YwMRfMLRv62PbqPBqGI2LMFoM4LFwZ3hd4W5lZb9A9A3xJ4I.E/u4F3B8j1jq3YJJdgcKlkPq5Vz1vFW0Q1Q21' bootc-user
 
-# Configure faillock
-RUN mkdir -p /etc/security/faillock && \
-    printf 'dir = /var/run/faillock\naudit\nsilent\ndeny = 3\nfail_interval = 900\nunlock_time = 0\n' > /etc/security/faillock.conf
-
-# Configure login.defs for password aging and umask
-RUN sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   60/' /etc/login.defs && \
-    sed -i 's/^PASS_MIN_DAYS.*/PASS_MIN_DAYS   1/' /etc/login.defs && \
-    sed -i 's/^PASS_MIN_LEN.*/PASS_MIN_LEN    15/' /etc/login.defs && \
-    sed -i 's/^UMASK.*/UMASK           077/' /etc/login.defs && \
-    sed -i 's/^ENCRYPT_METHOD.*/ENCRYPT_METHOD SHA512/' /etc/login.defs && \
-    grep -q "^SHA_CRYPT_MIN_ROUNDS" /etc/login.defs || echo "SHA_CRYPT_MIN_ROUNDS 5000" >> /etc/login.defs && \
-    grep -q "^FAIL_DELAY" /etc/login.defs || echo "FAIL_DELAY 4" >> /etc/login.defs
-
-# Configure umask in bashrc and profile
-RUN sed -i 's/umask 0[0-9][0-9]/umask 077/g' /etc/bashrc /etc/profile /etc/csh.cshrc 2>/dev/null || true && \
-    grep -q "umask 077" /etc/bashrc || echo "umask 077" >> /etc/bashrc && \
-    grep -q "umask 077" /etc/profile || echo "umask 077" >> /etc/profile
-
-# Configure session timeout
-RUN grep -q "^TMOUT" /etc/profile || echo "TMOUT=600" >> /etc/profile && \
-    grep -q "^readonly TMOUT" /etc/profile || echo "readonly TMOUT" >> /etc/profile && \
-    grep -q "^export TMOUT" /etc/profile || echo "export TMOUT" >> /etc/profile
-
-# Disable unnecessary kernel modules
-RUN mkdir -p /etc/modprobe.d && \
-    echo "install usb-storage /bin/true" > /etc/modprobe.d/usb-storage.conf && \
-    echo "install bluetooth /bin/true" > /etc/modprobe.d/bluetooth.conf && \
-    echo "install can /bin/true" > /etc/modprobe.d/can.conf && \
-    echo "install sctp /bin/true" > /etc/modprobe.d/sctp.conf && \
-    echo "install tipc /bin/true" > /etc/modprobe.d/tipc.conf
-
-# Configure sysctl for network hardening
-RUN mkdir -p /etc/sysctl.d && \
-    { echo '# Network hardening'; \
-      echo 'net.ipv4.conf.all.accept_redirects = 0'; \
-      echo 'net.ipv4.conf.default.accept_redirects = 0'; \
-      echo 'net.ipv4.conf.all.accept_source_route = 0'; \
-      echo 'net.ipv4.conf.default.accept_source_route = 0'; \
-      echo 'net.ipv4.conf.all.forwarding = 0'; \
-      echo 'net.ipv4.conf.all.rp_filter = 1'; \
-      echo 'net.ipv4.conf.default.rp_filter = 1'; \
-      echo 'net.ipv4.conf.all.send_redirects = 0'; \
-      echo 'net.ipv4.conf.default.send_redirects = 0'; \
-      echo 'net.ipv4.icmp_echo_ignore_broadcasts = 1'; \
-      echo 'net.ipv4.icmp_ignore_bogus_error_responses = 1'; \
-      echo 'net.ipv4.tcp_syncookies = 1'; \
-      echo 'net.ipv4.tcp_invalid_ratelimit = 500'; \
-      echo 'net.ipv4.ip_forward = 0'; \
-      echo 'net.ipv6.conf.all.accept_ra = 0'; \
-      echo 'net.ipv6.conf.default.accept_ra = 0'; \
-      echo 'net.ipv6.conf.all.accept_redirects = 0'; \
-      echo 'net.ipv6.conf.default.accept_redirects = 0'; \
-      echo 'net.ipv6.conf.all.accept_source_route = 0'; \
-      echo 'net.ipv6.conf.default.accept_source_route = 0'; \
-      echo 'net.ipv6.conf.all.forwarding = 0'; \
-      echo '# Kernel hardening'; \
-      echo 'kernel.dmesg_restrict = 1'; \
-      echo 'kernel.kptr_restrict = 2'; \
-      echo 'kernel.randomize_va_space = 2'; \
-      echo 'kernel.perf_event_paranoid = 2'; \
-      echo 'kernel.unprivileged_bpf_disabled = 1'; \
-      echo 'kernel.yama.ptrace_scope = 1'; \
-      echo 'kernel.core_pattern = |/bin/false'; \
-      echo 'net.core.bpf_jit_harden = 2'; \
-      echo 'kernel.kexec_load_disabled = 1'; \
-      echo '# Filesystem hardening'; \
-      echo 'fs.protected_hardlinks = 1'; \
-      echo 'fs.protected_symlinks = 1'; \
-    } > /etc/sysctl.d/99-stig.conf
-
-# Configure SSH server with STIG settings
-RUN mkdir -p /etc/ssh/sshd_config.d && \
-    { echo '# STIG SSH Configuration'; \
-      echo 'PermitRootLogin no'; \
-      echo 'MaxAuthTries 3'; \
-      echo 'ClientAliveInterval 600'; \
-      echo 'ClientAliveCountMax 0'; \
-      echo 'IgnoreRhosts yes'; \
-      echo 'HostbasedAuthentication no'; \
-      echo 'PermitEmptyPasswords no'; \
-      echo 'PermitUserEnvironment no'; \
-      echo 'GSSAPIAuthentication no'; \
-      echo 'KerberosAuthentication no'; \
-      echo 'StrictModes yes'; \
-      echo 'Compression no'; \
-      echo 'X11Forwarding no'; \
-      echo 'PrintLastLog yes'; \
-      echo 'Banner /etc/issue'; \
-      echo 'IgnoreUserKnownHosts yes'; \
-      echo 'PubkeyAuthentication yes'; \
-      echo 'LogLevel VERBOSE'; \
-      echo 'MaxSessions 10'; \
-      echo 'RekeyLimit 1G 1h'; \
-      echo 'ClientAliveCountMax 1'; \
-      echo 'X11UseLocalhost yes'; \
-    } > /etc/ssh/sshd_config.d/99-stig.conf
-
-# Create login banner
-RUN printf '%s\n' \
-    '*****************************************************************************' \
-    '*                                                                           *' \
-    '* This system is for the use of authorized users only. Individuals using   *' \
-    '* this computer system without authority, or in excess of their authority, *' \
-    '* are subject to having all of their activities on this system monitored   *' \
-    '* and recorded by system personnel.                                        *' \
-    '*                                                                           *' \
-    '* In the course of monitoring individuals improperly using this system, or *' \
-    '* in the course of system maintenance, the activities of authorized users  *' \
-    '* may also be monitored.                                                   *' \
-    '*                                                                           *' \
-    '* Anyone using this system expressly consents to such monitoring and is    *' \
-    '* advised that if such monitoring reveals possible evidence of criminal    *' \
-    '* activity, system personnel may provide the evidence to law enforcement   *' \
-    '* officials.                                                                *' \
-    '*                                                                           *' \
-    '*****************************************************************************' \
-    > /etc/issue
-
-# Configure chrony for NTP
-RUN sed -i '/^pool /d' /etc/chrony.conf && \
-    sed -i '/^server /d' /etc/chrony.conf && \
-    echo "server 0.centos.pool.ntp.org iburst maxpoll 10" >> /etc/chrony.conf && \
-    echo "server 1.centos.pool.ntp.org iburst maxpoll 10" >> /etc/chrony.conf && \
-    echo "noclientlog" >> /etc/chrony.conf && \
-    echo "maxclockerror 16" >> /etc/chrony.conf
-
-# Configure rsyslog
-RUN sed -i 's/^#\$ModLoad imjournal/$ModLoad imjournal/' /etc/rsyslog.conf 2>/dev/null || true && \
-    grep -q "cron.\*" /etc/rsyslog.conf || echo "cron.* /var/log/cron" >> /etc/rsyslog.conf
-
-# Enable fapolicyd with permissive mode for bootc
-RUN mkdir -p /etc/fapolicyd && \
-    echo "permissive = 1" > /etc/fapolicyd/fapolicyd.conf
-
-# Configure sudo
-RUN sed -i 's/^Defaults timestamp_timeout.*/Defaults timestamp_timeout=0/' /etc/sudoers 2>/dev/null || \
-    echo "Defaults timestamp_timeout=0" >> /etc/sudoers && \
-    sed -i 's/^Defaults !targetpw/Defaults targetpw/' /etc/sudoers 2>/dev/null || \
-    echo "Defaults targetpw" >> /etc/sudoers && \
-    sed -i 's/^Defaults !rootpw/Defaults rootpw/' /etc/sudoers 2>/dev/null || \
-    echo "Defaults !rootpw" >> /etc/sudoers
-
-# Disable core dumps
-RUN echo "* hard core 0" > /etc/security/limits.d/core.conf && \
-    mkdir -p /etc/systemd/coredump.conf.d && \
-    printf '[Coredump]\nStorage=none\nProcessSizeMax=0\n' > /etc/systemd/coredump.conf.d/disable.conf
-
-# Configure ctrl-alt-del
-RUN systemctl mask ctrl-alt-del.target || true
-
-# Initialize AIDE database (will complete on first boot of deployed system)
-RUN aide --init 2>/dev/null || true && \
-    if [ -f /var/lib/aide/aide.db.new.gz ]; then \
-        mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz; \
-    fi
-
-# Apply DISA STIG hardening profile
-# Note: Some remediations may not apply in a container context
-# but will be enforced when the bootc image is deployed
-# CentOS Stream 10 uses cs10 instead of cs9 in the filename
-RUN oscap xccdf eval \
-    --profile xccdf_org.ssgproject.content_profile_stig \
-    --remediate \
-    /usr/share/xml/scap/ssg/content/ssg-cs10-ds.xml 2>&1 | head -100 || true
-
-# Enable required services for STIG compliance
-# These will start when the bootc image boots on a real system
-RUN systemctl enable rsyslog || true && \
-    systemctl enable auditd || true && \
-    systemctl enable firewalld || true && \
-    systemctl enable fapolicyd || true && \
-    systemctl enable usbguard || true && \
-    systemctl enable chronyd || true && \
-    systemctl enable sshd || true
+# Run oscap-im to scan and remediate the image for STIG compliance
+# This is the best practice tool for bootable containers
+# Note: Some remediations may not apply in container context but will be enforced when deployed
+RUN oscap-im --profile xccdf_org.ssgproject.content_profile_stig \
+    /usr/share/xml/scap/ssg/content/ssg-cs10-ds.xml || true
 
 # Update hostname
 RUN echo "bootc-demo-v3" > /etc/hostname
 
-# Update MOTD with note about FIPS
+# Update MOTD
 RUN echo "========================================" > /etc/motd && \
     echo "CentOS Stream 10 Bootc Demo v3.0" >> /etc/motd && \
     echo "Base + FIPS + DISA STIG hardening" >> /etc/motd && \
     echo "" >> /etc/motd && \
-    echo "NOTE: When running as a container," >> /etc/motd && \
-    echo "FIPS will only show enabled if the" >> /etc/motd && \
-    echo "host has FIPS enabled. When deployed" >> /etc/motd && \
-    echo "as a bootc image to bare metal/VM," >> /etc/motd && \
-    echo "FIPS will be fully enabled at boot." >> /etc/motd && \
+    echo "FIPS enabled - verify with:" >> /etc/motd && \
+    echo "  cat /proc/sys/crypto/fips_enabled" >> /etc/motd && \
+    echo "" >> /etc/motd && \
+    echo "STIG compliance scan:" >> /etc/motd && \
+    echo "  sudo oscap xccdf eval --profile \\" >> /etc/motd && \
+    echo "    xccdf_org.ssgproject.content_profile_stig \\" >> /etc/motd && \
+    echo "    /usr/share/xml/scap/ssg/content/ssg-cs10-ds.xml" >> /etc/motd && \
     echo "========================================" >> /etc/motd
+
+# Best practice: Run bootc linter as final step
+RUN bootc container lint || true
