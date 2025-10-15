@@ -97,6 +97,49 @@ podman logs test-webapp
 podman stop test-webapp
 ```
 
+### Test with QEMU VM
+
+For the most accurate testing, use QEMU to boot the image as a real system:
+
+```bash
+# 1. Install QEMU
+sudo dnf install -y qemu-kvm qemu-img
+
+# 2. Create a bootable QEMU disk image
+sudo podman run --rm -it \
+    --privileged \
+    --pull=newer \
+    --security-opt label=type:unconfined_t \
+    -v $(pwd)/test-output:/output \
+    -v /var/lib/containers/storage:/var/lib/containers/storage \
+    registry.redhat.io/rhel9/bootc-image-builder:latest \
+    --type qcow2 \
+    --local \
+    localhost/bootc-demo:4.0
+
+# 3. Boot the image in QEMU
+qemu-system-x86_64 \
+    -m 4096 \
+    -cpu host \
+    -enable-kvm \
+    -smp 2 \
+    -drive file=test-output/qcow2/disk.qcow2,if=virtio,format=qcow2 \
+    -net nic,model=virtio \
+    -net user,hostfwd=tcp::2222-:22,hostfwd=tcp::8080-:8080 \
+    -nographic
+
+# 4. From another terminal, SSH into the VM
+ssh -p 2222 bootc-user@localhost  # Password: bootc
+
+# 5. Test FIPS (will show '1' in deployed system)
+ssh -p 2222 bootc-user@localhost 'cat /proc/sys/crypto/fips_enabled'
+
+# 6. Test the web app
+curl http://localhost:8080/
+```
+
+See `test-output/MANUAL_TEST_INSTRUCTIONS.md` for detailed testing instructions.
+
 ### Test FIPS Mode
 
 **Important**: When running as a container, FIPS mode requires the host system to have FIPS enabled, since containers share the host's kernel. The FIPS kernel arguments configured in the bootc image will take effect when the image is deployed to bare metal or a VM.
