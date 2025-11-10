@@ -1,5 +1,6 @@
 # Tag 2.0 - CentOS Stream 10 Bootc Image with FIPS
 # Builds on 1.0 and adds FIPS mode
+# Reference: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_image_mode_for_rhel_to_build_deploy_and_manage_operating_systems/assembly_enabling-fips-mode-in-a-bootc-image-build_using-image-mode-for-rhel-to-build-deploy-and-manage-operating-systems
 
 FROM localhost/bootc-demo:1.0
 
@@ -7,7 +8,6 @@ FROM localhost/bootc-demo:1.0
 COPY 01-fips.toml /usr/lib/bootc/kargs.d/
 
 # Install crypto-policies-scripts and enable FIPS cryptographic policy
-# Reference: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/security_hardening/assembly_installing-the-system-in-fips-mode_security-hardening
 RUN dnf install -y crypto-policies-scripts && \
     update-crypto-policies --no-reload --set FIPS && \
     dnf clean all
@@ -16,8 +16,14 @@ RUN dnf install -y crypto-policies-scripts && \
 RUN echo "bootc-demo-v2" > /etc/hostname
 
 # Update MOTD
-RUN echo "================================" > /etc/motd && \
+RUN echo "========================================" > /etc/motd && \
     echo "CentOS Stream 10 Bootc Demo v2.0" >> /etc/motd && \
     echo "Base image + FIPS mode enabled" >> /etc/motd && \
-    echo "================================" >> /etc/motd
+    echo "" >> /etc/motd && \
+    echo "Verify FIPS status with:" >> /etc/motd && \
+    echo "  cat /proc/sys/crypto/fips_enabled" >> /etc/motd && \
+    echo "  update-crypto-policies --show" >> /etc/motd && \
+    echo "========================================" >> /etc/motd
 
+# Best practice: Run bootc linter as final step
+RUN bootc container lint || true

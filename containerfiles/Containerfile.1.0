@@ -10,7 +10,33 @@ RUN dnf -y update && \
     bash-completion \
     tmux \
     git \
+    qemu-guest-agent \
     && dnf clean all
+
+# Create dracut configuration for virtio drivers
+# This ensures bootc includes virtio modules in initramfs when deploying
+# Critical for QEMU/KVM boot support
+RUN mkdir -p /etc/dracut.conf.d && \
+    echo '# Comprehensive storage driver inclusion for QEMU/KVM' > /etc/dracut.conf.d/99-qemu-drivers.conf && \
+    echo '# Virtio drivers (modern, high-performance)' >> /etc/dracut.conf.d/99-qemu-drivers.conf && \
+    echo 'add_drivers+=" virtio virtio_pci virtio_ring virtio_blk virtio_scsi virtio_net virtio_console "' >> /etc/dracut.conf.d/99-qemu-drivers.conf && \
+    echo '# IDE/SATA drivers (legacy, widely compatible)' >> /etc/dracut.conf.d/99-qemu-drivers.conf && \
+    echo 'add_drivers+=" ata_piix ata_generic pata_acpi "' >> /etc/dracut.conf.d/99-qemu-drivers.conf && \
+    echo '# Additional SCSI and block device drivers' >> /etc/dracut.conf.d/99-qemu-drivers.conf && \
+    echo 'add_drivers+=" sd_mod sr_mod "' >> /etc/dracut.conf.d/99-qemu-drivers.conf && \
+    echo '# Force non-host-specific initramfs' >> /etc/dracut.conf.d/99-qemu-drivers.conf && \
+    echo 'hostonly=no' >> /etc/dracut.conf.d/99-qemu-drivers.conf && \
+    echo 'hostonly_cmdline=no' >> /etc/dracut.conf.d/99-qemu-drivers.conf && \
+    echo 'add_dracutmodules+=" bash "' >> /etc/dracut.conf.d/99-qemu-drivers.conf && \
+    echo "=== Dracut config created, contents: ===" && \
+    cat /etc/dracut.conf.d/99-qemu-drivers.conf && \
+    echo "=== Now regenerating initramfs with new drivers ===" && \
+    KERNEL_VERSION=$(ls /lib/modules/ | head -1) && \
+    echo "Kernel version: $KERNEL_VERSION" && \
+    dracut --force --kver $KERNEL_VERSION && \
+    echo "=== Verifying drivers in initramfs ===" && \
+    lsinitrd /boot/ostree/centos-*-0/initramfs-*.img | grep -E "(virtio_blk|ata_piix)" || echo "WARNING: Drivers not found in initramfs!" && \
+    echo "=== Initramfs regeneration complete ==="
 
 # Set hostname
 RUN echo "bootc-demo-v1" > /etc/hostname
@@ -19,5 +45,6 @@ RUN echo "bootc-demo-v1" > /etc/hostname
 RUN echo "================================" > /etc/motd && \
     echo "CentOS Stream 10 Bootc Demo v1.0" >> /etc/motd && \
     echo "Vanilla base image" >> /etc/motd && \
+    echo "QEMU/KVM ready (virtio + IDE/SATA)" >> /etc/motd && \
     echo "================================" >> /etc/motd
 
