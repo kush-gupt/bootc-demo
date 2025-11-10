@@ -26,6 +26,9 @@ RUN pip3 install --no-cache-dir -r /opt/webapp/requirements.txt
 COPY webapp/bootc-demo-webapp.service /etc/systemd/system/
 RUN systemctl enable bootc-demo-webapp.service
 
+# Allow inbound traffic to the web application port
+RUN firewall-offline-cmd --add-port=8080/tcp
+
 # Expose port 8080 for the web application
 EXPOSE 8080
 
